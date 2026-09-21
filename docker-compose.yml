@@ -1,0 +1,30 @@
+services:
+  memory-router:
+    build: .
+    image: memory-router:v1
+    container_name: memory-router
+    ports:
+      - "8130:8130"
+    env_file: .env            # provides OPENROUTER_API_KEY
+    environment:
+      - PORT=8130
+      - ROUTER_CONFIG=/app/config.json
+    volumes:
+      - ./config.json:/app/config.json:ro   # edit + `docker compose restart` to reload rules, no rebuild
+    restart: always
+
+  memory-router-mcp:
+    build:
+      context: .
+      dockerfile: Dockerfile.mcp
+    image: memory-router-mcp:v1
+    container_name: memory-router-mcp
+    ports:
+      - "8131:8131"
+    environment:
+      - MR_BASE=http://memory-router:8130
+      - MCP_HOST=0.0.0.0
+      - MCP_PORT=8131
+    depends_on:
+      - memory-router
+    restart: always

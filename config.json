@@ -1,0 +1,47 @@
+{
+  "jev": {
+    "endpoint": "https://openrouter.ai/api/alpha/decisions",
+    "model": "typesafe/jev-1.13"
+  },
+  "lock": {
+    "ttl_seconds": 45
+  },
+  "routing": {
+    "_comment": "THIS is the only place with your setup-specific rules. Rename/add buckets to match your machines, and tune the instructions. The service code is generic.",
+    "questions": {
+      "bucket": {
+        "type": "choice",
+        "instructions": "Which machine/scope is this fact specifically ABOUT? Pick the single host it describes. Pick 'general' only if it is behavioral guidance or applies to the whole fleet equally (e.g. shared conventions, network map, shared credentials).",
+        "criteria": {
+          "general": "Behavioral guidance or fleet-wide fact that applies to every machine",
+          "workstation": "About a primary desktop/workstation specifically",
+          "server": "About a server host specifically",
+          "edge": "About an edge / single-board node (e.g. a Raspberry Pi) specifically"
+        }
+      },
+      "store": {
+        "type": "choice",
+        "instructions": "Decide how to FILE this. Choose 'dont-store' ONLY when the content is ephemeral with no lasting value: a one-time event, current/in-progress status, or a narration of a problem that was already solved. Choose 'memory-file' when it states a STABLE fact worth remembering later (hardware, network, service config, where files/keys live, tools, or a standing quirk) EVEN IF the sentence mentions how it was fixed or recovered. Choose 'index' for reference material for a central docs/index repo. Choose 'repo' for code/content that belongs in a specific code repository.",
+        "criteria": {
+          "memory-file": "A stable, reusable fact to remember",
+          "index": "Reference material for a central docs/index repo",
+          "repo": "Code or content for a specific code repository",
+          "dont-store": "Ephemeral only: one-time event, status, or a solved-problem log"
+        }
+      },
+      "durable": {
+        "type": "noul",
+        "instructions": "Will this still be TRUE and USEFUL weeks from now? YES for stable facts; NO for one-time events, in-progress status, or a solved-problem log. A stable fact that merely mentions a past fix is still durable (YES)."
+      },
+      "sensitive": {
+        "type": "noul",
+        "instructions": "Does the text contain an actual secret VALUE (password, API key, token, private key) or point to exactly where such a secret is stored? Yes if so; no for ordinary config."
+      },
+      "importance": {
+        "type": "score",
+        "instructions": "How useful is it to remember this long-term? trivial = noise; normal = handy reference; critical = core infrastructure or security.",
+        "criteria": ["trivial", "minor", "normal", "high", "critical"]
+      }
+    }
+  }
+}
