@@ -151,6 +151,7 @@ Before saving a fact to shared memory or editing a shared memory file:
    - If `store` is `dont-store`, the fact is transient: do not save it.
    - Otherwise save it under the returned `bucket`. If `sensitive` is high,
      record where the secret lives, never the secret itself.
+   - If `answers.bucket.confidence` is below 0.70, review the placement yourself.
 2. Call `memory_lock_acquire(agent="<your name>", target="<file you will edit>", ttl=<seconds>)`.
    - Pick a ttl that covers the whole edit (e.g. 300; max 600).
    - If `granted` is false, wait `wait_seconds`, then try again.
@@ -194,11 +195,13 @@ Details:
 | GET | `/decisions?limit=N` | — | recent routing decisions from the audit log, plus call/cost totals |
 | GET | `/usage` | — | OpenRouter credit and spend, plus local routing stats (cached 30 s) |
 
-Errors: `400` bad JSON, `404` unknown path, `502` the model backend returned an error (with its detail), `500` anything else.
+Errors: `400` bad JSON or empty/malformed routing input, `404` unknown path, `502` the model backend returned an error (with its detail), `500` anything else.
 
-**Gotcha:** a top-level `{"fact": "..."}` is **ignored**. The router then classifies an empty string, which comes back as a confident-looking but meaningless answer. Use `{"text": ...}` or `{"state": {"fact": ...}}`. The MCP tool does this for you.
+**Gotcha:** a top-level `{"fact": "..."}` is rejected with HTTP 400 before Jev is called. Use non-blank `{"text": ...}` or a non-empty `{"state": {"fact": ...}}`. The MCP tool does this for you.
 
-Every `/route` call is appended to `data/decisions.jsonl` (time, first 300 characters of the fact, suggestion, average confidence, cost), so you can audit and tune the routing over time.
+Every successful `/route` call is appended to `data/decisions.jsonl` (time, first 300 characters of the fact, suggestion, average confidence, cost), so you can audit and tune the routing over time.
+
+Run `python3 -m unittest -v test_route.py` to check route request validation without calling Jev.
 
 ---
 

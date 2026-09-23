@@ -9,6 +9,7 @@ Endpoints:
   GET  /usage          -> live OpenRouter credit/spend + local routing stats (cached)
   GET  /decisions      -> recent routing decisions (?limit=N)
   POST /route          {"state": {...}} or {"text": "..."}  -> typed routing decision (Jev)
+                       Empty or malformed input returns 400 without calling Jev.
   POST /lock/acquire   {"agent": "...", "target": "CLAUDE.md", "ttl": 300} -> {granted, lease, ttl} | {wait_seconds, holder}
   POST /lock/renew     {"lease": "...", "ttl": 300} -> {renewed, ttl} | {renewed: false, error}
   POST /lock/release   {"lease": "..."} -> {released}
@@ -157,6 +158,29 @@ def _clamp_ttl(ttl):
     return max(1, min(ttl, LOCK_TTL_MAX))
 
 
+def route_state(data):
+    """Require a meaningful routing input before making a paid Jev call."""
+    if "state" in data:
+        state = data["state"]
+        if not isinstance(state, dict) or not _has_content(state):
+            raise ValueError("state must be a non-empty object")
+        return state
+    text = data.get("text")
+    if not isinstance(text, str) or not text.strip():
+        raise ValueError("provide non-empty text or state")
+    return {"text": text.strip()}
+
+
+def _has_content(value):
+    if isinstance(value, str):
+        return bool(value.strip())
+    if isinstance(value, dict):
+        return any(_has_content(v) for v in value.values())
+    if isinstance(value, list):
+        return any(_has_content(v) for v in value)
+    return value is not None
+
+
 def acquire(target, agent, ttl=None):
     now = time.time()
     seconds = _clamp_ttl(ttl) if ttl is not None else LOCK_TTL
@@ -207,7 +231,10 @@ class H(BaseHTTPRequestHandler):
 
     def _body(self):
         n = int(self.headers.get("Content-Length", 0) or 0)
-        return json.loads(self.rfile.read(n) or b"{}")
+        data = json.loads(self.rfile.read(n) or b"{}")
+        if not isinstance(data, dict):
+            raise ValueError("body must be a JSON object")
+        return data
 
     def do_GET(self):
         path = self.path.split("?")[0]
@@ -236,7 +263,10 @@ class H(BaseHTTPRequestHandler):
             return self._send(400, {"error": f"bad json: {e}"})
         try:
             if self.path == "/route":
-                state = data.get("state") or {"text": data.get("text", "")}
+                try:
+                    state = route_state(data)
+                except ValueError as e:
+                    return self._send(400, {"error": str(e)})
                 res = jev_decide(state)
                 ans = res.get("answers", {})
                 flat = {k: (v.get("choice") if "choice" in v else v.get("noul") if "noul" in v else v.get("score"))
