@@ -55,6 +55,8 @@ def memory_route(fact: str) -> dict:
 @tool
 def memory_lock_acquire(agent: str, target: str = "CLAUDE.md", ttl: int | None = None) -> dict:
     """Acquire a write-lease before editing shared lab memory, so only one agent writes at a time.
+    An active lease blocks a new acquire even with the same agent name; use the
+    lease token to renew or release it.
     ttl is the lease length in seconds (router default 45, max 600). A lease that runs out
     mid-edit stops protecting you, so for a multi-step edit pass a ttl that covers the whole
     job (e.g. 300), or call memory_lock_renew as you go.

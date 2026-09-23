@@ -37,6 +37,7 @@ Rules that always hold:
 
 - The router **never writes files**. You do the write it suggests.
 - A lease **expires after its ttl** (default 45 seconds, maximum 600). An expired lease protects nothing. Take a ttl long enough for the whole edit, or renew as you go.
+- The lease token proves ownership. An active lease blocks another acquire even when the caller uses the same agent name.
 - Always **release** a lease when you finish, even if the write failed.
 - `/route` sends the fact text to a **cloud API** (OpenRouter). Never route a secret value; route a description of it ("the API key is in .env").
 - There is **no authentication**. Anyone who can reach the ports can use it.
@@ -178,7 +179,10 @@ Details:
 - `target` is any string naming the shared resource. It doesn't have to be a file name, but using the file's name keeps it obvious.
 - `ttl` is in seconds. Leaving it out gives `lock.ttl_seconds` (45). Anything above `lock.ttl_max_seconds` (600) is capped, and the reply's `ttl` shows what you actually got.
 - A lease can only be renewed or released by whoever holds its `lease` token. There is no "force unlock": an abandoned lease simply expires.
+- Calling acquire again with the same agent name does not replace an active lease. Keep its token and call renew if you need more time.
 - `answers` holds the model's full answer for each question, including a `confidence` (0–1) for each choice. A low-confidence bucket (below about 0.7) is a guess; consider keeping the previous placement.
+
+Run `python3 -m unittest -v test_lease.py` to check lease ownership without calling Jev.
 
 ---
 
