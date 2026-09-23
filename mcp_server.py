@@ -44,6 +44,8 @@ def _with_ttl(payload: dict, ttl: int | None) -> dict:
 @tool
 def memory_route(fact: str) -> dict:
     """Decide where a fact should be filed before saving it to lab memory.
+    A blank fact is rejected before Jev is called. Review low-confidence bucket
+    decisions rather than treating the suggested bucket as certain.
     Returns a typed decision: bucket (one of the buckets defined in the router's
     config.json — typically a conventions bucket for rules about how to work, a shared
     bucket for fleet-wide facts, or one specific machine), store

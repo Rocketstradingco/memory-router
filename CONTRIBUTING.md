@@ -25,7 +25,13 @@ These keep the project what it is. A PR that breaks one will be asked to change.
 
 ## Testing a change
 
-There's no test suite yet (a PR adding one is welcome). Before opening a PR, run through this:
+Run the local protocol tests first; they do not call Jev:
+
+```bash
+python3 -m unittest -v test_route.py
+```
+
+For full integration, run through this:
 
 ```bash
 cp .env.example .env                       # add your own OpenRouter key
