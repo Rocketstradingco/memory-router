@@ -1,30 +1,34 @@
+# Two containers: the router (HTTP API) and an MCP wrapper that exposes it as agent tools.
+# Host-side address and ports come from .env (see .env.example). By default everything is
+# published on 127.0.0.1 only; set BIND_ADDR to this machine's LAN IP so agents on other
+# machines can reach it. There is no authentication -- expose it only on a network you trust.
 services:
   memory-router:
     build: .
-    image: memory-router:v1
-    container_name: memory-router
-    ports:
-      - "8130:8130"
-    env_file: .env            # provides OPENROUTER_API_KEY
+    env_file: .env                          # OPENROUTER_API_KEY
     environment:
       - PORT=8130
       - ROUTER_CONFIG=/app/config.json
+      - ROUTER_DATA=/app/data
+    ports:
+      - "${BIND_ADDR:-127.0.0.1}:${ROUTER_PORT:-8130}:8130"
     volumes:
-      - ./config.json:/app/config.json:ro   # edit + `docker compose restart` to reload rules, no rebuild
-    restart: always
+      - ./config.json:/app/config.json:ro   # edit, then `docker compose restart memory-router`
+      - ./data:/app/data                    # decisions.jsonl audit log, survives rebuilds
+    restart: unless-stopped
 
   memory-router-mcp:
     build:
       context: .
       dockerfile: Dockerfile.mcp
-    image: memory-router-mcp:v1
-    container_name: memory-router-mcp
-    ports:
-      - "8131:8131"
     environment:
       - MR_BASE=http://memory-router:8130
       - MCP_HOST=0.0.0.0
       - MCP_PORT=8131
+      - MCP_HEALTH_PORT=8132
+    ports:
+      - "${BIND_ADDR:-127.0.0.1}:${MCP_PORT:-8131}:8131"                # MCP endpoint: /mcp
+      - "${BIND_ADDR:-127.0.0.1}:${MCP_HEALTH_PORT:-8132}:8132"         # GET /health (real MCP handshake)
     depends_on:
       - memory-router
-    restart: always
+    restart: unless-stopped

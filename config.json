@@ -4,42 +4,44 @@
     "model": "typesafe/jev-1.13"
   },
   "lock": {
-    "ttl_seconds": 45
+    "ttl_seconds": 45,
+    "ttl_max_seconds": 600
   },
   "routing": {
-    "_comment": "THIS is the only place with your setup-specific rules. Rename/add buckets to match your machines, and tune the instructions. The service code is generic.",
+    "_comment": "The ONLY setup-specific file. Replace the example machines 'workstation', 'server' and 'edge' in bucket.criteria with your own (add or remove as many as you have). Describe each machine by what ONLY it has -- distinctive services, ports, paths, hardware -- because things every machine has identify nothing. Keep 'conventions' and 'shared'. Everything inside 'questions' is sent to the model verbatim, so keep notes like this one out of it. After editing: docker compose restart memory-router, then run tools/calibrate.py.",
     "questions": {
       "bucket": {
         "type": "choice",
-        "instructions": "Which machine/scope is this fact specifically ABOUT? Pick the single host it describes. Pick 'general' only if it is behavioral guidance or applies to the whole fleet equally (e.g. shared conventions, network map, shared credentials).",
+        "instructions": "Which scope is this fact ABOUT? If it tells the assistant how to behave in general -- a rule, preference or convention about how to work, communicate or maintain memory -- choose 'conventions', even when it mentions a machine, tool or repo along the way. But a fact about what is on one machine or how to use it -- where its tools live, how to build or run things there, what not to run there -- belongs to that machine even when phrased as an instruction. If it is a fact equally true of every machine (the network map, a shared key, how the machines reach each other, cross-host architecture) choose 'shared'. Otherwise pick the single machine it is about, identifying it from what the fact mentions even when the machine is not named: each machine's criteria list its distinctive hardware, services and paths.",
         "criteria": {
-          "general": "Behavioral guidance or fleet-wide fact that applies to every machine",
-          "workstation": "About a primary desktop/workstation specifically",
-          "server": "About a server host specifically",
-          "edge": "About an edge / single-board node (e.g. a Raspberry Pi) specifically"
+          "conventions": "How to WORK: a standing rule, preference or convention about the assistant's own behaviour -- tone, what to ask before acting, what never to do unprompted, naming style, how to present information, how memory itself should be recorded. It would still be true if every machine were replaced tomorrow. Holds even when the rule names a machine, tool or repo: behaviour rules override every machine. NOT conventions: usage notes for one machine's tools ('the SDK lives here, always build with flag X') -- those describe that machine.",
+          "shared": "A fact about the whole fleet, equally true of every machine: the network map and host inventory, a shared SSH key, how the machines reach each other, where the canonical docs live, cross-host architecture decisions. Choose this over a specific machine only when the fact genuinely spans all of them.",
+          "workstation": "The main desktop workstation (Windows or Linux) at 192.168.1.10: its GPU and local AI models, desktop applications, IDEs, the user's home folder and C:\\ paths, peripherals such as the keyboard and monitors.",
+          "server": "The always-on home server at 192.168.1.20: its Docker containers and compose stacks, databases, media and backup services, the ports those services listen on, and /srv or /opt paths.",
+          "edge": "A Raspberry Pi edge node at 192.168.1.30: attached sensors and GPIO devices, serial/USB hardware, and the small always-on agents and timers that run on it."
         }
       },
       "store": {
         "type": "choice",
-        "instructions": "Decide how to FILE this. Choose 'dont-store' ONLY when the content is ephemeral with no lasting value: a one-time event, current/in-progress status, or a narration of a problem that was already solved. Choose 'memory-file' when it states a STABLE fact worth remembering later (hardware, network, service config, where files/keys live, tools, or a standing quirk) EVEN IF the sentence mentions how it was fixed or recovered. Choose 'index' for reference material for a central docs/index repo. Choose 'repo' for code/content that belongs in a specific code repository.",
+        "instructions": "Decide how to FILE this. Choose memory-file when it states something STABLE and reusable: hardware, network/IP, service config, where files or keys live, tools installed, a quirk or limitation that stays true, OR a standing behavioural instruction about how to work (a preference, convention, or rule the user wants followed in future) -- even if the sentence also mentions how something was fixed. Choose dont-store ONLY when the content is genuinely ephemeral with no lasting value: a one-time event, a current or in-progress status, or a narration of a problem that is already solved. Choose index for reference material that belongs in a central docs/index repo, and repo for code or content for a specific code repository.",
         "criteria": {
-          "memory-file": "A stable, reusable fact to remember",
+          "memory-file": "A stable, reusable fact OR a standing behavioural rule: hardware, network/IP, service config, file and key locations, installed tools, lasting quirks and limitations, working conventions, and preferences about how the user wants things done in future.",
           "index": "Reference material for a central docs/index repo",
-          "repo": "Code or content for a specific code repository",
-          "dont-store": "Ephemeral only: one-time event, status, or a solved-problem log"
+          "repo": "Code or content that belongs inside a specific code repository",
+          "dont-store": "Ephemeral only: a one-time event, a current status or in-progress state, or a narration of a problem that has already been solved and leaves no lasting rule behind."
         }
       },
       "durable": {
         "type": "noul",
-        "instructions": "Will this still be TRUE and USEFUL weeks from now? YES for stable facts; NO for one-time events, in-progress status, or a solved-problem log. A stable fact that merely mentions a past fix is still durable (YES)."
+        "instructions": "Will this still be TRUE and USEFUL weeks from now? YES for stable facts (hardware, network, locations, tools, conventions, standing quirks). NO for one-time events, in-progress status, or a solved-problem log. A stable fact that merely mentions a past fix is still durable (YES)."
       },
       "sensitive": {
         "type": "noul",
-        "instructions": "Does the text contain an actual secret VALUE (password, API key, token, private key) or point to exactly where such a secret is stored? Yes if so; no for ordinary config."
+        "instructions": "Does the text contain an actual secret VALUE (a password, API key, token, or private key), OR point to exactly where such a secret is stored? Yes if a credential value or its precise location is present; no for ordinary config."
       },
       "importance": {
         "type": "score",
-        "instructions": "How useful is it to remember this long-term? trivial = noise; normal = handy reference; critical = core infrastructure or security.",
+        "instructions": "How useful is it to remember this long-term? trivial = noise; normal = handy reference; critical = core infrastructure, security, or a fact whose absence caused real failures.",
         "criteria": ["trivial", "minor", "normal", "high", "critical"]
       }
     }
