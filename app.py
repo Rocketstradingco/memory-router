@@ -186,7 +186,9 @@ def acquire(target, agent, ttl=None):
     seconds = _clamp_ttl(ttl) if ttl is not None else LOCK_TTL
     with _mu:
         cur = _locks.get(target)
-        if cur and cur["expires"] > now and cur["agent"] != agent:
+        # The lease token, not the agent label, proves ownership. A second
+        # process using the same label must not replace an active lease.
+        if cur and cur["expires"] > now:
             return {"granted": False, "wait_seconds": round(cur["expires"] - now, 1), "holder": cur["agent"]}
         lease = uuid.uuid4().hex
         _locks[target] = {"lease": lease, "agent": agent, "expires": now + seconds}
