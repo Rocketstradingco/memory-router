@@ -84,6 +84,7 @@ config.json
 ├── jev.model / jev.endpoint           which decision model to call (leave as-is)
 ├── lock.ttl_seconds                   default lease length (45)
 ├── lock.ttl_max_seconds               longest lease a caller may ask for (600)
+├── lock.default_target               target locked when a caller names none ("CLAUDE.md")
 └── routing.questions                  sent to the model VERBATIM on every /route call
     ├── bucket     (choice)            WHERE the fact belongs  <- edit this one
     ├── store      (choice)            memory-file | index | repo | dont-store
@@ -171,13 +172,13 @@ If the tools are unavailable, write carefully and keep edits small; do not block
 | Tool | Parameters | Returns |
 |---|---|---|
 | `memory_route` | `fact: str` | `{"suggestion": {bucket, store, durable, sensitive, importance}, "answers": {...}, "usage": {...}}` |
-| `memory_lock_acquire` | `agent: str`, `target: str = "CLAUDE.md"`, `ttl: int \| null = null` | `{"granted": true, "lease", "ttl", "target"}` or `{"granted": false, "wait_seconds", "holder"}` |
+| `memory_lock_acquire` | `agent: str`, `target: str \| null = null`, `ttl: int \| null = null` | `{"granted": true, "lease", "ttl", "target"}` or `{"granted": false, "wait_seconds", "holder"}` |
 | `memory_lock_renew` | `lease: str`, `ttl: int \| null = null` | `{"renewed": true, "lease", "ttl", "target"}` or `{"renewed": false, "error"}` |
 | `memory_lock_release` | `lease: str` | `{"released": true, "target"}` or `{"released": false, "error"}` |
 
 Details:
 
-- `target` is any string naming the shared resource. It doesn't have to be a file name, but using the file's name keeps it obvious.
+- `target` is any string naming the shared resource. It doesn't have to be a file name, but using the file's name keeps it obvious. Leaving it out locks `lock.default_target` (`CLAUDE.md` unless you change it), so set that to the name of your shared memory file and every agent that omits `target` contends for the same lease.
 - `ttl` is in seconds. Leaving it out gives `lock.ttl_seconds` (45). Anything above `lock.ttl_max_seconds` (600) is capped, and the reply's `ttl` shows what you actually got.
 - A lease can only be renewed or released by whoever holds its `lease` token. There is no "force unlock": an abandoned lease simply expires.
 - Calling acquire again with the same agent name does not replace an active lease. Keep its token and call renew if you need more time.

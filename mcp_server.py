@@ -55,8 +55,9 @@ def memory_route(fact: str) -> dict:
 
 
 @tool
-def memory_lock_acquire(agent: str, target: str = "CLAUDE.md", ttl: int | None = None) -> dict:
+def memory_lock_acquire(agent: str, target: str | None = None, ttl: int | None = None) -> dict:
     """Acquire a write-lease before editing shared lab memory, so only one agent writes at a time.
+    Omit target to lock the shared memory file (the router's configured default).
     An active lease blocks a new acquire even with the same agent name; use the
     lease token to renew or release it.
     ttl is the lease length in seconds (router default 45, max 600). A lease that runs out
@@ -64,7 +65,8 @@ def memory_lock_acquire(agent: str, target: str = "CLAUDE.md", ttl: int | None =
     job (e.g. 300), or call memory_lock_renew as you go.
     Returns {granted:true, lease, ttl} or {granted:false, wait_seconds, holder}.
     If not granted, wait `wait_seconds` and retry. Always release when done."""
-    return _post("/lock/acquire", _with_ttl({"agent": agent, "target": target}, ttl))
+    payload = {"agent": agent} if target is None else {"agent": agent, "target": target}
+    return _post("/lock/acquire", _with_ttl(payload, ttl))
 
 
 @tool

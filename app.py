@@ -26,6 +26,8 @@ LOCK_TTL = int(CONFIG.get("lock", {}).get("ttl_seconds", 45))
 # Ceiling for a caller-specified TTL. Long enough for a full vault rebuild,
 # short enough that a crashed writer frees the target without help.
 LOCK_TTL_MAX = int(CONFIG.get("lock", {}).get("ttl_max_seconds", 600))
+# Target used when a caller does not name one: the shared memory file.
+LOCK_TARGET = CONFIG.get("lock", {}).get("default_target", "CLAUDE.md")
 DATA = os.environ.get("ROUTER_DATA", "/app/data")
 LOG = os.path.join(DATA, "decisions.jsonl")
 OR_API = "https://openrouter.ai/api/v1"
@@ -276,7 +278,7 @@ class H(BaseHTTPRequestHandler):
                 log_decision(state, flat, ans, res.get("usage"))
                 return self._send(200, {"suggestion": flat, "answers": ans, "usage": res.get("usage")})
             if self.path == "/lock/acquire":
-                return self._send(200, acquire(data.get("target", "CLAUDE.md"),
+                return self._send(200, acquire(data.get("target") or LOCK_TARGET,
                                                data.get("agent", "unknown"),
                                                data.get("ttl")))
             if self.path == "/lock/renew":
