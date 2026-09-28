@@ -5,7 +5,8 @@
   },
   "lock": {
     "ttl_seconds": 45,
-    "ttl_max_seconds": 600
+    "ttl_max_seconds": 600,
+    "default_target": "CLAUDE.md"
   },
   "routing": {
     "_comment": "The ONLY setup-specific file. Replace the example machines 'workstation', 'server' and 'edge' in bucket.criteria with your own (add or remove as many as you have). Describe each machine by what ONLY it has -- distinctive services, ports, paths, hardware -- because things every machine has identify nothing. Keep 'conventions' and 'shared'. Everything inside 'questions' is sent to the model verbatim, so keep notes like this one out of it. After editing: docker compose restart memory-router, then run tools/calibrate.py.",
