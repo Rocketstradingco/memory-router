@@ -296,4 +296,4 @@ class H(BaseHTTPRequestHandler):
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", "8130"))
     print(f"memory-router listening on :{port} (model={JEV['model']}, lock_ttl={LOCK_TTL}s, key={'set' if API_KEY else 'MISSING'})", flush=True)
-    ThreadingHTTPServer(("0.0.0.0", port), H).serve_forever()
+    ThreadingHTTPServer((os.environ.get("BIND_ADDR", "0.0.0.0"), port), H).serve_forever()

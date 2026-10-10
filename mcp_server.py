@@ -135,7 +135,7 @@ class Health(BaseHTTPRequestHandler):
 
 
 if __name__ == "__main__":
-    threading.Thread(target=ThreadingHTTPServer(("0.0.0.0", HEALTH_PORT), Health).serve_forever,
+    threading.Thread(target=ThreadingHTTPServer((os.environ.get("MCP_HOST", "0.0.0.0"), HEALTH_PORT), Health).serve_forever,
                      daemon=True).start()
     print(f"memory-router-mcp health on :{HEALTH_PORT}/health", flush=True)
     mcp.run(transport="streamable-http")
